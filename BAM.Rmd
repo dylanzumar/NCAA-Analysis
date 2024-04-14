@@ -1,0 +1,200 @@
+---
+title: "BAM"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library("tidyr")
+library("stringr")
+library("dplyr")
+library("ggplot2")
+BAM <- read.csv("NCAA-BAM-Data.csv")
+```
+
+```{r}
+BAM <- BAM %>%
+  mutate(BAMAverage = case_when(
+    is.na(BAMScore2) ~ BAMScore,
+    !is.na(BAMScore2) ~ as.integer(round((BAMScore + BAMScore2) / 2))
+  ))
+```
+
+```{r}
+BAM %>%
+  group_by(position) %>%
+  ggplot(mapping = aes(x = position, y = BAMAverage)) +
+  geom_boxplot() +
+  ylab("BAMScore") +
+  xlab("College Position") +
+  ggtitle("BAMScore Broken Down by College Position") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+BAM %>%
+  group_by(position) %>%
+  summarise(min = min(BAMAverage), q1 = quantile(BAMAverage, 0.25), mean = mean(BAMAverage),
+            q3 = quantile(BAMAverage, 0.75), max = max(BAMAverage))
+```
+
+```{r}
+corrBAM <- BAM %>%
+  separate(college, c('college', 'college2'), " and ", convert = TRUE) %>%
+  separate(college_height, c('college_feet', 'college_inches'), "-", convert = TRUE) %>%
+  separate(NBA_height, c('NBA_feet', 'NBA_inches'), "-", convert = TRUE) %>%
+  mutate(college_cm = (12*college_feet + college_inches)*2.54) %>%
+  mutate(NBA_cm = (12*NBA_feet + NBA_inches)*2.54)
+```
+
+
+```{r}
+corrBAM %>%
+  select(BAMScore, NBA_FT, NBA_FTA, NBA_FT., NBA_ORB, NBA_DRB, NBA_TRB, NBA_AST, NBA_STL, NBA_BLK, NBA_TOV, NBA_PF, NBA_PTS) %>%
+  cor(use="pairwise.complete.obs")
+```
+
+```{r}
+bb <- BAM %>%
+  separate(college, c('college', 'college2'), " and ", convert = TRUE)
+```
+
+```{r}
+bb  %>%
+  mutate(BAMAverage = case_when(
+    is.na(BAMScore2) ~ BAMScore,
+    !is.na(BAMScore2) ~ as.integer(round((BAMScore + BAMScore2) / 2))
+  )) %>%
+  mutate(blue_blood = case_when(
+    college2 == "Kansas" ~ "Kansas",
+    college == "Kansas" ~ "Kansas",
+    college2 == "Duke" ~ "Duke",
+    college == "Duke" ~ "Duke",
+    college2 == "Kentucky" ~ "Kentucky",
+    college == "Kentucky" ~ "Kentucky",
+    college2 == "UNC" ~ "North Carolina",
+    college == "UNC" ~ "North Carolina",
+    college2 == "UCLA" ~ "UCLA",
+    college == "UCLA" ~ "UCLA"
+    )) %>%
+  filter(blue_blood == "Kansas" | blue_blood == "Kentucky" | blue_blood == "UCLA"
+         | blue_blood == "North Carolina" | blue_blood == "Duke") %>%
+  group_by(blue_blood) %>%
+  summarise(count = n(), min = min(BAMAverage), q1 = quantile(BAMAverage, 0.25), mean = mean(BAMAverage), q3 = quantile(BAMAverage, 0.75), max = max(BAMAverage))
+```
+
+```{r}
+BAM %>%
+  mutate(BAM_Level = case_when(
+    BAMAverage >= 1375 & BAMAverage < 1725 ~ "Junior Varsity (1375-1725)",
+    BAMAverage >= 1725 & BAMAverage < 1975 ~ "Varsity (1725-1975)",
+    BAMAverage >= 1975 & BAMAverage < 2175 ~ "Division 2 (1975-2175)",
+    BAMAverage >= 2175 & BAMAverage < 2325 ~ "Division 1 (2175-2325)",
+    BAMAverage >= 2325 & BAMAverage < 2425 ~ "Professional (2325-2425)",
+  )) %>%
+  group_by(BAM_Level) %>%
+  summarise(Count = n(), Average_NBA_Games_Played = sum(NBA_G, na.rm = TRUE)/n()) %>%
+  arrange(factor(BAM_Level, levels = c("Professional (2325-2425)", "Division 1 (2175-2325)",
+                                       "Division 2 (1975-2175)", "Varsity (1725-1975)",
+                                       "Junior Varsity (1375-1725)")))
+```
+```{r}
+BAM %>%
+  filter(!is.na(NBA_G))
+```
+
+```{r}
+BAM %>%
+  group_by(Year) %>%
+  summarise(count = n(), min = min(BAMScore), q1 = quantile(BAMScore, 0.25), mean = mean(BAMScore), q3 = quantile(BAMScore, 0.75), max = max(BAMScore))
+
+BAM %>%
+  group_by(Year2) %>%
+  summarise(count = n(), min = min(BAMScore), q1 = quantile(BAMScore, 0.25), mean = mean(BAMScore), q3 = quantile(BAMScore, 0.75), max = max(BAMScore))
+```
+
+```{r}
+temp <- BAM %>%
+  mutate(ohnine = case_when(
+    Year == 2009 ~ BAMScore,
+    Year2 == 2009 ~ BAMScore2
+  )) %>%
+  mutate(ten = case_when(
+    Year == 2010 ~ BAMScore,
+    Year2 == 2010 ~ BAMScore2
+  )) %>%
+  mutate(one = case_when(
+    Year == 2011 ~ BAMScore,
+    Year2 == 2011 ~ BAMScore2
+  )) %>%
+  mutate(two = case_when(
+    Year == 2012 ~ BAMScore,
+    Year2 == 2012 ~ BAMScore2
+  )) %>%
+  mutate(three = case_when(
+    Year == 2013 ~ BAMScore,
+    Year2 == 2013 ~ BAMScore2
+  )) %>%
+  mutate(four = case_when(
+    Year == 2014 ~ BAMScore,
+    Year2 == 2014 ~ BAMScore2
+  )) %>%
+  mutate(five = case_when(
+    Year == 2015 ~ BAMScore,
+    Year2 == 2015 ~ BAMScore2
+  )) %>%
+  mutate(six = case_when(
+    Year == 2016 ~ BAMScore,
+    Year2 == 2016 ~ BAMScore2
+  )) %>%
+  mutate(seven = case_when(
+    Year == 2017 ~ BAMScore,
+    Year2 == 2017 ~ BAMScore2
+  )) %>%
+  mutate(eight = case_when(
+    Year == 2018 ~ BAMScore,
+    Year2 == 2018 ~ BAMScore2
+  )) %>%
+  mutate(nine = case_when(
+    Year == 2019 ~ BAMScore,
+    Year2 == 2019 ~ BAMScore2,
+  ))
+```
+
+```{r}
+temp %>%
+  summarise(sum = sum(nine, na.rm = TRUE))
+```
+
+```{r}
+BAM %>%
+  filter(NBA_PTS >= 15) %>%
+  summarise(Count = n(), 'Average BAMScore for >15 PPG NBA Players' = round(mean(BAMAverage)))
+BAM %>%
+  filter(NBA_AST >= 5) %>%
+  summarise(Count = n(), 'Average BAMScore for >5 APG NBA Players' = round(mean(BAMAverage)))
+BAM %>%
+  filter(NBA_TRB >= 8) %>%
+  summarise(Count = n(), 'Average BAMScore for >8 TRB per game NBA Players' = round(mean(BAMAverage)))
+BAM %>%
+  filter(NBA_BLK >= 1) %>%
+  summarise(Count = n(), 'Average BAMScore for >1 BLK per game NBA Players' = round(mean(BAMAverage)))
+```
+
+```{r}
+BAM %>%
+  summarise(min = min(college_weight, na.rm = TRUE), max = max(college_weight, na.rm = TRUE))
+BAM %>%
+  mutate(college_weight_bracket = case_when(
+    college_weight >= 150 & college_weight <175 ~ "150-175",
+    college_weight >= 175 & college_weight <200 ~ "175-200",
+    college_weight >= 200 & college_weight <225 ~ "200-225",
+    college_weight >= 225 & college_weight <250 ~ "225-250",
+    college_weight >= 250 & college_weight <275 ~ "250-275",
+    college_weight >= 275 & college_weight <=300 ~ "275-300"
+  )) %>%
+  group_by(college_weight_bracket) %>%
+  summarise(count = n(), min = round(min(BAMAverage)), q1 = round(quantile(BAMAverage, 0.25)), mean = round(mean(BAMAverage)), q3 = round(quantile(BAMAverage, 0.75)), max = max(BAMAverage))
+```
+
